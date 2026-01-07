@@ -5,36 +5,45 @@ import ToolLayout from "@/components/ToolLayout";
 import FileUpload from "@/components/FileUpload";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSEO } from "@/components/useSEO";
 
 const SEOContent = () => (
   <div className="mt-12 space-y-8 text-sm">
     <section>
       <h2 className="text-xl font-semibold text-foreground mb-3">
-        Convert Photos to PDF for Document Submission
+        Convert JPG Images to PDF Online
       </h2>
       <p className="text-muted-foreground leading-relaxed">
-        Quickly convert JPG images to PDF format for document submissions. 
-        Perfect for converting scanned documents, photos of certificates, 
-        ID cards, and other images into universally accepted PDF format.
+        Convert JPG and PNG images to PDF format instantly for document
+        submissions and official use. Ideal for scanned documents, certificate
+        photos, ID cards, and mobile phone images. Everything works locally in
+        your browser for complete privacy.
       </p>
     </section>
-    
+
     <section>
       <h2 className="text-xl font-semibold text-foreground mb-3">
-        Common Use Cases
+        Common JPG to PDF Use Cases
       </h2>
       <ul className="text-muted-foreground space-y-2">
         <li>• Convert scanned documents to PDF for official submissions</li>
-        <li>• Create PDF from photos of certificates and diplomas</li>
-        <li>• Convert ID card photos to PDF format</li>
-        <li>• Create PDF documents from mobile phone photos</li>
-        <li>• Convert receipts and invoices to PDF for records</li>
+        <li>• Create PDF files from certificate and diploma photos</li>
+        <li>• Convert ID card images to PDF format</li>
+        <li>• Turn mobile phone photos into PDFs</li>
+        <li>• Convert receipts and invoices to PDF for record keeping</li>
       </ul>
     </section>
   </div>
 );
 
 const JPGtoPDF = () => {
+  useSEO({
+    title: "JPG to PDF Converter Online | Convert Images to PDF Free",
+    description:
+      "Convert JPG and PNG images to PDF online for free. Fast, secure, and works directly in your browser without uploads.",
+    canonical: "/jpg-to-pdf",
+  });
+
   const [processing, setProcessing] = useState(false);
   const { toast } = useToast();
 
@@ -43,7 +52,7 @@ const JPGtoPDF = () => {
     try {
       const pdfDoc = await PDFDocument.create();
       const imageBytes = await file.arrayBuffer();
-      
+
       let image;
       if (file.type === "image/jpeg" || file.type === "image/jpg") {
         image = await pdfDoc.embedJpg(imageBytes);
@@ -52,7 +61,7 @@ const JPGtoPDF = () => {
       } else {
         throw new Error("Unsupported image format");
       }
-      
+
       const page = pdfDoc.addPage([image.width, image.height]);
       page.drawImage(image, {
         x: 0,
@@ -60,16 +69,18 @@ const JPGtoPDF = () => {
         width: image.width,
         height: image.height,
       });
-      
+
       const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes as BlobPart], { type: "application/pdf" });
-      
+      const blob = new Blob([pdfBytes as BlobPart], {
+        type: "application/pdf",
+      });
+
       const fileName = file.name.replace(/\.[^/.]+$/, ".pdf");
       saveAs(blob, fileName);
-      
+
       toast({
         title: "Conversion Complete",
-        description: "Your image has been converted to PDF.",
+        description: "Your image has been successfully converted to PDF.",
       });
     } catch (error) {
       toast({
@@ -84,8 +95,8 @@ const JPGtoPDF = () => {
 
   return (
     <ToolLayout
-      title="JPG to PDF"
-      description="Convert images to PDF format for document submissions and official forms."
+      title="JPG to PDF Converter"
+      description="Convert JPG and PNG images to PDF format online for document submissions and official use."
       seoContent={<SEOContent />}
     >
       <div className="space-y-6">
@@ -94,11 +105,11 @@ const JPGtoPDF = () => {
           accept="image/jpeg,image/jpg,image/png"
           maxSize={20}
         />
-        
+
         {processing && (
           <div className="flex items-center justify-center gap-3 py-8">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            <p className="text-muted-foreground">Converting to PDF...</p>
+            <p className="text-muted-foreground">Converting image to PDF…</p>
           </div>
         )}
       </div>
