@@ -14,22 +14,22 @@ const Header = () => {
               DocFlow
             </span>
           </Link>
-          
+
           <div className="hidden md:flex items-center gap-8">
-            <Link 
-              to="/" 
+            <a
+              href="#tools"
               className="text-muted-foreground hover:text-foreground font-medium transition-colors"
             >
               Tools
-            </Link>
-            <a 
-              href="#features" 
+            </a>
+            <a
+              href="#features"
               className="text-muted-foreground hover:text-foreground font-medium transition-colors"
             >
               Features
             </a>
-            <a 
-              href="#security" 
+            <a
+              href="#security"
               className="text-muted-foreground hover:text-foreground font-medium transition-colors"
             >
               Security
