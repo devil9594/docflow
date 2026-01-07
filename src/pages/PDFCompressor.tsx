@@ -20,9 +20,9 @@ const SEOContent = () => (
       </h2>
       <p className="text-muted-foreground leading-relaxed">
         Our PDF compressor helps you reduce file sizes for job application portals,
-        college admission forms, and government document submissions. Whether you need
-        to compress PDF for Aadhaar card upload, passport applications, or PAN card
-        submissions, this tool delivers optimal compression without quality loss.
+        college admission forms, and government document submissions. Whether you
+        need to compress PDF for Aadhaar card upload, passport applications, or PAN
+        card submissions, this tool delivers optimal compression without quality loss.
       </p>
     </section>
 
@@ -54,12 +54,11 @@ const SEOContent = () => (
 );
 
 const PDFCompressor = () => {
-  // ✅ SEO APPLIED HERE (THIS WAS MISSING)
   useSEO({
     title: "Compress PDF Online Free | Reduce PDF File Size Securely",
     description:
       "Compress PDF files online for free. Reduce PDF size without losing quality. Fast, secure, browser-based PDF compressor for job applications and government forms.",
-    path: "/pdf-compressor",
+    canonical: "/pdf-compressor",
   });
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
