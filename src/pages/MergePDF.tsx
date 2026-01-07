@@ -5,36 +5,45 @@ import ToolLayout from "@/components/ToolLayout";
 import { Button } from "@/components/ui/button";
 import { Upload, Loader2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSEO } from "@/components/useSEO";
 
 const SEOContent = () => (
   <div className="mt-12 space-y-8 text-sm">
     <section>
       <h2 className="text-xl font-semibold text-foreground mb-3">
-        Combine Multiple PDFs Into One Document
+        Merge PDF Files Online Into One Document
       </h2>
       <p className="text-muted-foreground leading-relaxed">
-        Merge multiple PDF files into a single document for easier organization 
-        and sharing. Perfect for combining scanned pages, creating document packages, 
-        or consolidating reports.
+        Easily merge multiple PDF files into a single document for better
+        organization and sharing. Ideal for combining scanned pages, contracts,
+        reports, invoices, and document packages. Everything runs locally in your
+        browser to keep your files private.
       </p>
     </section>
-    
+
     <section>
       <h2 className="text-xl font-semibold text-foreground mb-3">
-        Common Use Cases
+        Common Use Cases for PDF Merging
       </h2>
       <ul className="text-muted-foreground space-y-2">
-        <li>• Combine multiple scanned pages into one document</li>
+        <li>• Combine multiple scanned pages into one PDF</li>
         <li>• Merge contract pages from different sources</li>
-        <li>• Create document packages for submissions</li>
-        <li>• Consolidate monthly reports into annual documents</li>
-        <li>• Combine multiple invoices for records</li>
+        <li>• Create document bundles for official submissions</li>
+        <li>• Consolidate monthly reports into a single file</li>
+        <li>• Merge multiple invoices for record keeping</li>
       </ul>
     </section>
   </div>
 );
 
 const MergePDF = () => {
+  useSEO({
+    title: "Merge PDF Online | Combine Multiple PDF Files Free",
+    description:
+      "Merge PDF files online into one document. Free, fast, and secure PDF merger that works directly in your browser without uploads.",
+    canonical: "/merge-pdf",
+  });
+
   const [files, setFiles] = useState<File[]>([]);
   const [processing, setProcessing] = useState(false);
   const { toast } = useToast();
@@ -62,24 +71,29 @@ const MergePDF = () => {
     setProcessing(true);
     try {
       const mergedPdf = await PDFDocument.create();
-      
+
       for (const file of files) {
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await PDFDocument.load(arrayBuffer);
-        const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+        const copiedPages = await mergedPdf.copyPages(
+          pdf,
+          pdf.getPageIndices()
+        );
         copiedPages.forEach((page) => mergedPdf.addPage(page));
       }
-      
+
       const mergedPdfBytes = await mergedPdf.save();
-      const blob = new Blob([mergedPdfBytes as BlobPart], { type: "application/pdf" });
-      
+      const blob = new Blob([mergedPdfBytes as BlobPart], {
+        type: "application/pdf",
+      });
+
       saveAs(blob, "merged.pdf");
-      
+
       toast({
         title: "PDFs Merged",
-        description: `Combined ${files.length} PDF files.`,
+        description: `Combined ${files.length} PDF files successfully.`,
       });
-      
+
       setFiles([]);
     } catch (error) {
       toast({
@@ -94,8 +108,8 @@ const MergePDF = () => {
 
   return (
     <ToolLayout
-      title="Merge PDF"
-      description="Combine multiple PDF documents into a single file."
+      title="Merge PDF Files"
+      description="Combine multiple PDF files into a single document online."
       seoContent={<SEOContent />}
     >
       <div className="space-y-6">
@@ -156,7 +170,7 @@ const MergePDF = () => {
           {processing ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Merging PDFs...
+              Merging PDFs…
             </>
           ) : (
             `Merge ${files.length} PDF${files.length !== 1 ? "s" : ""}`
