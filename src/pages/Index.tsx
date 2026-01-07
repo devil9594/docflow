@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { 
   Minimize2, 
@@ -20,6 +21,18 @@ import ToolCard from "@/components/ToolCard";
 import { Button } from "@/components/ui/button";
 
 const Index = () => {
+  useEffect(() => {
+    if (window.location.hash) {
+      const id = window.location.hash.replace("#", "");
+      const el = document.getElementById(id);
+      if (el) {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: "smooth" });
+        }, 50);
+      }
+    }
+  }, []);
+
   const tools = [
     {
       title: "PDF Compressor",
@@ -114,11 +127,10 @@ const Index = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      
+
       {/* Hero Section */}
       <section className="relative bg-card border-b border-border overflow-hidden">
         <div className="absolute inset-0 bg-grid-pattern opacity-50" />
-        
         <div className="container mx-auto px-6 py-20 md:py-28 relative z-10">
           <div className="text-center max-w-3xl mx-auto">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-foreground leading-tight">
@@ -129,78 +141,47 @@ const Index = () => {
               Compress PDFs for government forms, convert documents, and process files—all 
               securely in your browser. No uploads, no accounts, no data collection.
             </p>
-            <Button 
-              asChild
-              size="lg"
-              className="bg-primary hover:bg-primary-dark text-primary-foreground font-semibold px-8"
-            >
+            <Button asChild size="lg">
               <a href="#tools">Browse All Tools</a>
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Features */}
       <section id="features" className="py-16 bg-background">
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {features.map((feature) => (
-              <div key={feature.title} className="text-center">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <feature.icon className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="font-semibold text-foreground mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground text-sm">{feature.description}</p>
+        <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+          {features.map((feature) => (
+            <div key={feature.title} className="text-center">
+              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <feature.icon className="w-6 h-6 text-primary" />
               </div>
-            ))}
-          </div>
+              <h3 className="font-semibold mb-2">{feature.title}</h3>
+              <p className="text-sm text-muted-foreground">{feature.description}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Tools Grid Section */}
+      {/* Tools */}
       <main id="tools" className="flex-1 py-16 bg-background">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
-              Professional Document Tools
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to compress, convert, merge, and manage your documents. 
-              Perfect for job applications, government forms, and everyday document tasks.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tools.map((tool) => (
-              <ToolCard
-                key={tool.link}
-                title={tool.title}
-                description={tool.description}
-                icon={tool.icon}
-                link={tool.link}
-                highlight={tool.highlight}
-              />
-            ))}
-          </div>
+        <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {tools.map((tool) => (
+            <ToolCard key={tool.link} {...tool} />
+          ))}
         </div>
       </main>
 
-      {/* Security Section */}
+      {/* Security */}
       <section id="security" className="py-16 bg-card border-t border-border">
-        <div className="container mx-auto px-6">
-          <div className="max-w-3xl mx-auto text-center">
-            <Shield className="w-12 h-12 text-primary mx-auto mb-6" />
-            <h2 className="text-2xl md:text-3xl font-bold mb-4 text-foreground">
-              Your Files Stay on Your Device
-            </h2>
-            <p className="text-muted-foreground leading-relaxed">
-              Unlike other online tools, we don't upload your files to any server. 
-              All document processing happens entirely within your browser using 
-              client-side JavaScript. This means your sensitive documents—whether 
-              they're ID cards, financial records, or personal files—never leave 
-              your computer. Complete privacy, guaranteed.
-            </p>
-          </div>
+        <div className="container mx-auto px-6 max-w-3xl text-center">
+          <Shield className="w-12 h-12 mx-auto mb-6 text-primary" />
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">
+            Your Files Stay on Your Device
+          </h2>
+          <p className="text-muted-foreground">
+            All processing happens locally in your browser. No uploads. No tracking.
+          </p>
         </div>
       </section>
 
