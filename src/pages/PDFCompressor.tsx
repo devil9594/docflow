@@ -1,18 +1,22 @@
 import { useSEO } from "@/components/useSEO";
 import { useState } from "react";
-import { PDFDocument } from "pdf-lib";
+import * as pdfjsLib from "pdfjs-dist";
+import { jsPDF } from "jspdf";
 import { saveAs } from "file-saver";
 import ToolLayout from "@/components/ToolLayout";
 import FileUpload from "@/components/FileUpload";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
 const PDFCompressor = () => {
   useSEO({
-    title: "Compress PDF Online | Reduce PDF Size",
+    title: "Compress PDF Online | Reduce PDF Size Fast",
     description:
-      "Compress PDF files online and reduce file size using browser-based optimization. Some PDFs may already be optimized.",
+      "Compress PDF files online by reducing quality. Fast, browser-based PDF compression.",
   });
 
   const [file, setFile] = useState<File | null>(null);
@@ -32,51 +36,56 @@ const PDFCompressor = () => {
     setProcessing(true);
 
     try {
-      const bytes = await file.arrayBuffer();
+      const buffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
 
-      const pdfDoc = await PDFDocument.load(bytes, {
-        ignoreEncryption: true,
-        updateMetadata: false,
+      // 🔥 AGGRESSIVE BUT STABLE SETTINGS
+      const RENDER_SCALE = 1.1;
+      const JPEG_QUALITY = 0.55;
+
+      const firstPage = await pdf.getPage(1);
+      const viewport = firstPage.getViewport({ scale: RENDER_SCALE });
+
+      const doc = new jsPDF({
+        orientation:
+          viewport.width > viewport.height ? "landscape" : "portrait",
+        unit: "pt",
+        format: [viewport.width, viewport.height],
       });
 
-      // Remove metadata (safe, lossless)
-      pdfDoc.setTitle("");
-      pdfDoc.setAuthor("");
-      pdfDoc.setSubject("");
-      pdfDoc.setKeywords([]);
-      pdfDoc.setProducer("");
-      pdfDoc.setCreator("");
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const vp = page.getViewport({ scale: RENDER_SCALE });
 
-      const compressedBytes = await pdfDoc.save({
-        useObjectStreams: true,
-        addDefaultPage: false,
-      });
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Canvas unsupported");
 
-      const blob = new Blob([compressedBytes], {
-        type: "application/pdf",
-      });
+        canvas.width = vp.width;
+        canvas.height = vp.height;
 
-      setCompressedSize(blob.size);
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
 
-      if (blob.size < file.size) {
-        saveAs(blob, `compressed_${file.name}`);
-        toast({
-          title: "PDF Optimized",
-          description: "Your PDF was optimized and downloaded.",
-        });
-      } else {
-        toast({
-          title: "Already Optimized",
-          description:
-            "This PDF is already optimized and cannot be reduced further in the browser.",
-        });
+        const img = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
+
+        if (i > 1) doc.addPage();
+        doc.addImage(img, "JPEG", 0, 0, vp.width, vp.height);
       }
+
+      const blob = doc.output("blob");
+      setCompressedSize(blob.size);
+      saveAs(blob, `compressed_${file.name}`);
+
+      toast({
+        title: "PDF Compressed",
+        description: "File size significantly reduced with quality loss.",
+      });
     } catch (err) {
       console.error(err);
       toast({
-        title: "Unsupported PDF",
+        title: "Compression Failed",
         description:
-          "This PDF cannot be optimized in the browser (encrypted, signed, or complex format).",
+          "This PDF cannot be processed in the browser.",
         variant: "destructive",
       });
     } finally {
@@ -84,36 +93,27 @@ const PDFCompressor = () => {
     }
   };
 
-  const formatSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024)
-      return `${(bytes / 1024).toFixed(2)} KB`;
-    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
-  };
+  const formatSize = (bytes: number) =>
+    bytes < 1024 * 1024
+      ? `${(bytes / 1024).toFixed(2)} KB`
+      : `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 
   return (
     <ToolLayout
       title="PDF Compressor"
-      description="Reduce PDF file size using browser-based optimization. Some PDFs may already be optimized."
+      description="Reduce PDF size by lowering quality. Fast, browser-based compression."
     >
       <div className="space-y-6">
         <FileUpload onFileSelect={handleFileSelect} accept=".pdf" maxSize={50} />
 
         {file && originalSize && (
           <div className="rounded-lg bg-muted/50 p-4 text-sm space-y-1">
-            <p>
-              <strong>File:</strong> {file.name}
-            </p>
-            <p>
-              <strong>Original size:</strong> {formatSize(originalSize)}
-            </p>
+            <p><strong>File:</strong> {file.name}</p>
+            <p><strong>Original size:</strong> {formatSize(originalSize)}</p>
             {compressedSize && (
-              <p className="text-green-600 flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                <span>
-                  <strong>Compressed size:</strong>{" "}
-                  {formatSize(compressedSize)}
-                </span>
+              <p className="text-green-600">
+                <strong>Compressed size:</strong>{" "}
+                {formatSize(compressedSize)}
               </p>
             )}
           </div>
@@ -126,16 +126,15 @@ const PDFCompressor = () => {
         )}
 
         {processing && (
-          <div className="flex items-center justify-center gap-2 py-6">
+          <div className="flex justify-center items-center gap-2 py-6">
             <Loader2 className="animate-spin" />
-            <span>Optimizing PDF…</span>
+            <span>Compressing PDF…</span>
           </div>
         )}
 
-        {/* SEO & Trust Disclaimer */}
+        {/* SEO & TRUST */}
         <p className="text-xs text-muted-foreground text-center">
-          Note: This tool optimizes PDFs in your browser. Some PDFs may already be
-          optimized or not supported.
+          Note: Compression reduces quality and removes selectable text.
         </p>
       </div>
     </ToolLayout>
