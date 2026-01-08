@@ -149,15 +149,20 @@ const Index = () => {
     <div className="flex flex-col min-h-screen">
       <Header />
 
+      {/* SEO H1 – Crawlable, Non-Visual */}
+      <h1 className="sr-only">
+        Free Online PDF Tools – Convert, Merge, and Manage PDFs Securely
+      </h1>
+
       {/* Hero Section */}
       <section className="relative bg-card border-b border-border overflow-hidden">
         <div className="absolute inset-0 bg-grid-pattern opacity-50" />
         <div className="container mx-auto px-6 py-20 md:py-28 relative z-10">
           <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-foreground leading-tight">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-foreground leading-tight">
               Free Online{" "}
               <span className="text-gradient">PDF & Document Tools</span>
-            </h1>
+            </h2>
             <p className="text-lg md:text-xl text-muted-foreground mb-8 leading-relaxed">
               Compress PDFs for government forms, convert documents, and optimize
               images — all securely in your browser. No uploads. No accounts.
@@ -194,6 +199,50 @@ const Index = () => {
           ))}
         </div>
       </main>
+
+      {/* SEO Content Block – Phase 1 */}
+      <section className="max-w-5xl mx-auto px-6 py-16 text-muted-foreground">
+        <h2 className="text-2xl font-semibold mb-4">
+          PDF to Word Converter – Free and Secure
+        </h2>
+        <p className="mb-6">
+          DocFlow enables users to convert PDF files into fully editable Word
+          documents directly in the browser. This PDF to Word converter is built
+          for accuracy, speed, and privacy, allowing document conversion without
+          installing software or creating accounts. It is suitable for students,
+          professionals, and businesses requiring fast document editing.
+        </p>
+
+        <h2 className="text-2xl font-semibold mb-4">
+          Merge PDF Files Online with Ease
+        </h2>
+        <p className="mb-6">
+          The merge PDF tool in DocFlow allows multiple documents to be combined
+          into a single organized file. Users can merge reports, application
+          documents, and scanned files in seconds while maintaining document
+          quality and structure. All processing occurs locally in the browser.
+        </p>
+
+        <h2 className="text-2xl font-semibold mb-4">
+          Compress PDF Documents Without Quality Loss
+        </h2>
+        <p className="mb-6">
+          DocFlow’s PDF compression tools reduce file sizes for email sharing and
+          online uploads while preserving readability and layout. Compression to
+          specific sizes such as 100KB or 200KB makes DocFlow ideal for government
+          forms and strict upload requirements.
+        </p>
+
+        <h2 className="text-2xl font-semibold mb-4">
+          Why Choose DocFlow for PDF Management
+        </h2>
+        <p>
+          DocFlow is a browser-based document processing platform designed for
+          speed, simplicity, and privacy. Unlike traditional online PDF tools,
+          DocFlow does not store files or require user registration, making it a
+          trusted solution for secure and efficient PDF management.
+        </p>
+      </section>
 
       {/* Security */}
       <section id="security" className="py-16 bg-card border-t border-border">
