@@ -19,9 +19,22 @@ export const useSEO = ({ title, description }: SEOConfig) => {
     }
     meta.setAttribute("content", description);
 
-    // IMPORTANT:
-    // Canonical is intentionally NOT handled here.
-    // It is defined once in index.html to avoid
-    // broken or duplicate canonicals with HashRouter.
+    /**
+     * CANONICAL HARD LOCK
+     * -------------------
+     * We explicitly REMOVE any canonical tags
+     * that were injected by JavaScript.
+     * Canonical must ONLY come from index.html
+     * for HashRouter + GitHub Pages.
+     */
+
+    const canonicals = document.querySelectorAll('link[rel="canonical"]');
+
+    canonicals.forEach((link, index) => {
+      // Keep ONLY the first canonical (from index.html)
+      if (index > 0) {
+        link.remove();
+      }
+    });
   }, [title, description]);
 };
