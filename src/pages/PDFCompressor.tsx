@@ -6,41 +6,41 @@ import ToolLayout from "@/components/ToolLayout";
 import FileUpload from "@/components/FileUpload";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 
 const PDFCompressor = () => {
   useSEO({
     title: "Compress PDF Online Free | Reduce PDF File Size Securely",
     description:
-      "Compress PDF files online for free. Reduce PDF size securely in your browser.",
+      "Compress PDF files online for free. Reduce PDF size securely in your browser. No uploads. No signup.",
   });
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
-  const [quality, setQuality] = useState([70]);
+  const [compressedBlob, setCompressedBlob] = useState<Blob | null>(null);
+  const [originalSize, setOriginalSize] = useState<number | null>(null);
+  const [compressedSize, setCompressedSize] = useState<number | null>(null);
+
   const { toast } = useToast();
 
   const compressPDF = async () => {
     if (!selectedFile) return;
 
     setProcessing(true);
+    setCompressedBlob(null);
+
     try {
       const bytes = await selectedFile.arrayBuffer();
+      setOriginalSize(selectedFile.size);
+
       const pdfDoc = await PDFDocument.load(bytes);
 
-      // 🔥 ACTUAL COMPRESSION
+      // ✅ LOSSLESS, STABLE OPTIMIZATION
       pdfDoc.setTitle("");
       pdfDoc.setAuthor("");
       pdfDoc.setSubject("");
       pdfDoc.setCreator("");
       pdfDoc.setProducer("");
-
-      pdfDoc.context.lookup = new Proxy(pdfDoc.context.lookup, {
-        apply(target, thisArg, args) {
-          return Reflect.apply(target, thisArg, args);
-        },
-      });
 
       const compressedBytes = await pdfDoc.save({
         useObjectStreams: true,
@@ -51,26 +51,27 @@ const PDFCompressor = () => {
         type: "application/pdf",
       });
 
-      if (blob.size >= selectedFile.size) {
-        toast({
-          title: "Already Optimized",
-          description:
-            "This PDF cannot be reduced further without quality loss.",
-        });
-      }
+      setCompressedBlob(blob);
+      setCompressedSize(blob.size);
 
-      saveAs(blob, `compressed_${selectedFile.name}`);
+      const reduction = (
+        ((selectedFile.size - blob.size) / selectedFile.size) *
+        100
+      ).toFixed(1);
 
       toast({
-        title: "PDF Compressed",
-        description: "Your optimized PDF has been downloaded.",
+        title: "Compression Complete",
+        description:
+          reduction > 5
+            ? `File size reduced by ${reduction}%`
+            : "This PDF was already optimized.",
       });
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
       toast({
         title: "Compression Failed",
         description:
-          "This PDF cannot be optimized in the browser. Some PDFs require server-side tools.",
+          "This PDF cannot be further compressed in the browser.",
         variant: "destructive",
       });
     } finally {
@@ -78,31 +79,36 @@ const PDFCompressor = () => {
     }
   };
 
+  const downloadPDF = () => {
+    if (!compressedBlob || !selectedFile) return;
+    saveAs(compressedBlob, `compressed_${selectedFile.name}`);
+  };
+
+  const formatMB = (bytes: number) =>
+    (bytes / 1024 / 1024).toFixed(2) + " MB";
+
   return (
     <ToolLayout
       title="PDF Compressor"
       description="Reduce PDF file size securely in your browser."
     >
       <div className="space-y-6">
-        <FileUpload onFileSelect={setSelectedFile} accept=".pdf" maxSize={50} />
+        <FileUpload
+          onFileSelect={(file) => {
+            setSelectedFile(file);
+            setCompressedBlob(null);
+            setOriginalSize(null);
+            setCompressedSize(null);
+          }}
+          accept=".pdf"
+          maxSize={50}
+        />
 
-        {selectedFile && !processing && (
+        {selectedFile && !processing && !compressedBlob && (
           <>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Optimization level: {quality[0]}%
-              </label>
-              <Slider
-                value={quality}
-                onValueChange={setQuality}
-                min={50}
-                max={90}
-                step={10}
-              />
-              <p className="text-xs text-muted-foreground">
-                Lossless optimization (no visual quality loss)
-              </p>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Original size: {formatMB(selectedFile.size)}
+            </p>
 
             <Button onClick={compressPDF} className="w-full">
               Compress PDF
@@ -111,9 +117,34 @@ const PDFCompressor = () => {
         )}
 
         {processing && (
-          <div className="flex justify-center gap-2">
-            <Loader2 className="animate-spin" />
-            <span>Optimizing PDF…</span>
+          <div className="flex items-center justify-center gap-2 py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <span className="text-muted-foreground">
+              Compressing your PDF…
+            </span>
+          </div>
+        )}
+
+        {compressedBlob && originalSize && compressedSize && (
+          <div className="space-y-4 border rounded-lg p-4">
+            <p>
+              <strong>Original:</strong> {formatMB(originalSize)}
+            </p>
+            <p>
+              <strong>Compressed:</strong> {formatMB(compressedSize)}
+            </p>
+            <p>
+              <strong>Reduction:</strong>{" "}
+              {(
+                ((originalSize - compressedSize) / originalSize) *
+                100
+              ).toFixed(1)}
+              %
+            </p>
+
+            <Button onClick={downloadPDF} className="w-full">
+              Download Compressed PDF
+            </Button>
           </div>
         )}
       </div>
