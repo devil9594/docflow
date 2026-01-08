@@ -16,51 +16,63 @@ const PDFCompressor = () => {
   useSEO({
     title: "Compress PDF Online | Reduce PDF Size by 20–25%",
     description:
-      "Compress PDF files online and reduce file size by around 20–25%. Browser-based, fast, and free.",
+      "Compress PDF files online and reduce size by about 20–25%. Browser-based and free.",
   });
 
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [originalSize, setOriginalSize] = useState<number | null>(null);
   const { toast } = useToast();
+
+  const handleFileSelect = (selected: File) => {
+    setFile(selected);
+    setOriginalSize(selected.size);
+  };
 
   const compressPDF = async () => {
     if (!file) return;
-
     setProcessing(true);
 
     try {
       const buffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+      const loadingTask = pdfjsLib.getDocument({
+        data: buffer,
+        disableFontFace: true,
+      });
 
-      // 🎯 CONTROLLED COMPRESSION SETTINGS
-      const RENDER_SCALE = 1.25;   // moderate downscale
-      const JPEG_QUALITY = 0.78;   // preserves readability
+      const pdf = await loadingTask.promise;
+
+      const RENDER_SCALE = 1.25;
+      const JPEG_QUALITY = 0.78;
 
       const firstPage = await pdf.getPage(1);
-      const viewport = firstPage.getViewport({ scale: RENDER_SCALE });
+      const baseViewport = firstPage.getViewport({ scale: RENDER_SCALE });
 
       const doc = new jsPDF({
-        orientation: viewport.width > viewport.height ? "landscape" : "portrait",
+        orientation:
+          baseViewport.width > baseViewport.height ? "landscape" : "portrait",
         unit: "pt",
-        format: [viewport.width, viewport.height],
+        format: [baseViewport.width, baseViewport.height],
       });
 
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
-        const vp = page.getViewport({ scale: RENDER_SCALE });
+        const viewport = page.getViewport({ scale: RENDER_SCALE });
 
         const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d")!;
-        canvas.width = vp.width;
-        canvas.height = vp.height;
+        const ctx = canvas.getContext("2d");
 
-        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+        if (!ctx) throw new Error("Canvas not supported");
+
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        await page.render({ canvasContext: ctx, viewport }).promise;
 
         const img = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
 
         if (i > 1) doc.addPage();
-
-        doc.addImage(img, "JPEG", 0, 0, vp.width, vp.height);
+        doc.addImage(img, "JPEG", 0, 0, viewport.width, viewport.height);
       }
 
       const blob = doc.output("blob");
@@ -68,13 +80,14 @@ const PDFCompressor = () => {
 
       toast({
         title: "PDF Compressed",
-        description: "File size reduced by approximately 20–25%.",
+        description: "File size reduced with controlled quality loss.",
       });
     } catch (err) {
       console.error(err);
       toast({
-        title: "Compression Failed",
-        description: "This PDF could not be processed in the browser.",
+        title: "Unsupported PDF",
+        description:
+          "This PDF cannot be compressed in the browser (encrypted or digitally signed).",
         variant: "destructive",
       });
     } finally {
@@ -85,10 +98,22 @@ const PDFCompressor = () => {
   return (
     <ToolLayout
       title="PDF Compressor"
-      description="Reduce PDF size by about 20–25% with controlled quality reduction."
+      description="Reduce PDF size by about 20–25% using browser-based compression."
     >
       <div className="space-y-6">
-        <FileUpload onFileSelect={setFile} accept=".pdf" maxSize={50} />
+        <FileUpload onFileSelect={handleFileSelect} accept=".pdf" maxSize={50} />
+
+        {file && originalSize && (
+          <div className="rounded-lg bg-muted/50 p-4 text-sm">
+            <p>
+              <strong>File:</strong> {file.name}
+            </p>
+            <p>
+              <strong>Original size:</strong>{" "}
+              {(originalSize / 1024 / 1024).toFixed(2)} MB
+            </p>
+          </div>
+        )}
 
         {file && !processing && (
           <Button onClick={compressPDF} className="w-full">
