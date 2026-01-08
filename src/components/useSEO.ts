@@ -3,13 +3,14 @@ import { useEffect } from "react";
 interface SEOConfig {
   title: string;
   description: string;
-  path: string;
 }
 
-export const useSEO = ({ title, description, path }: SEOConfig) => {
+export const useSEO = ({ title, description }: SEOConfig) => {
   useEffect(() => {
+    // Set document title
     document.title = title;
 
+    // Set meta description
     let meta = document.querySelector('meta[name="description"]');
     if (!meta) {
       meta = document.createElement("meta");
@@ -18,15 +19,9 @@ export const useSEO = ({ title, description, path }: SEOConfig) => {
     }
     meta.setAttribute("content", description);
 
-    let canonical = document.querySelector('link[rel="canonical"]');
-    if (!canonical) {
-      canonical = document.createElement("link");
-      canonical.setAttribute("rel", "canonical");
-      document.head.appendChild(canonical);
-    }
-    canonical.setAttribute(
-      "href",
-      `https://devil9594.github.io/docflow${path}`
-    );
-  }, [title, description, path]);
+    // IMPORTANT:
+    // Canonical is intentionally NOT handled here.
+    // It is defined once in index.html to avoid
+    // broken or duplicate canonicals with HashRouter.
+  }, [title, description]);
 };
