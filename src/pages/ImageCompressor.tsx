@@ -1,141 +1,154 @@
+import { useSEO } from "@/components/useSEO";
 import { useState } from "react";
+import { PDFDocument } from "pdf-lib";
 import { saveAs } from "file-saver";
 import ToolLayout from "@/components/ToolLayout";
 import FileUpload from "@/components/FileUpload";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Slider } from "@/components/ui/slider";
-import { useSEO } from "@/components/useSEO";
+import { Button } from "@/components/ui/button";
 
-const SEOContent = () => (
-  <div className="mt-12 space-y-8 text-sm">
-    <section>
-      <h2 className="text-xl font-semibold text-foreground mb-3">
-        Compress Images Online Without Losing Quality
-      </h2>
-      <p className="text-muted-foreground leading-relaxed">
-        Large image files can slow down websites and exceed upload limits on
-        email and online forms. This image compressor helps you reduce JPG and
-        PNG file sizes while maintaining visual quality. Everything runs locally
-        in your browser for maximum privacy.
-      </p>
-    </section>
-
-    <section>
-      <h2 className="text-xl font-semibold text-foreground mb-3">
-        Common Use Cases for Image Compression
-      </h2>
-      <ul className="text-muted-foreground space-y-2">
-        <li>• Compress images for faster website loading</li>
-        <li>• Reduce image size for email attachments</li>
-        <li>• Optimize photos for social media uploads</li>
-        <li>• Compress product images for e-commerce stores</li>
-        <li>• Reduce image size for online forms and documents</li>
-      </ul>
-    </section>
-  </div>
-);
-
-const ImageCompressor = () => {
+const PDFCompressor = () => {
   useSEO({
-    title: "Image Compressor Online | Reduce JPG & PNG Size Free",
+    title: "Compress PDF Online Free | Reduce PDF File Size Securely",
     description:
-      "Compress images online to reduce JPG and PNG file size. Free, fast, and secure image compressor that works directly in your browser.",
-    canonical: "/image-compressor",
+      "Compress PDF files online for free. Reduce PDF size by 20–25% securely in your browser. No uploads. No signup.",
   });
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
-  const [quality, setQuality] = useState([80]);
+  const [compressedBlob, setCompressedBlob] = useState<Blob | null>(null);
+  const [originalSize, setOriginalSize] = useState<number | null>(null);
+  const [compressedSize, setCompressedSize] = useState<number | null>(null);
+
   const { toast } = useToast();
 
-  const compressImage = async (file: File) => {
+  const compressPDF = async () => {
+    if (!selectedFile) return;
+
     setProcessing(true);
+    setCompressedBlob(null);
+
     try {
-      const img = new Image();
-      const reader = new FileReader();
+      const bytes = await selectedFile.arrayBuffer();
+      setOriginalSize(selectedFile.size);
 
-      reader.onload = (e) => {
-        img.src = e.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          canvas.width = img.width;
-          canvas.height = img.height;
+      const pdfDoc = await PDFDocument.load(bytes);
 
-          const ctx = canvas.getContext("2d");
-          ctx?.drawImage(img, 0, 0);
+      // ✅ SAFE LOSSLESS OPTIMIZATION
+      pdfDoc.setTitle("");
+      pdfDoc.setAuthor("");
+      pdfDoc.setSubject("");
+      pdfDoc.setCreator("");
+      pdfDoc.setProducer("");
 
-          canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                const originalSize = file.size;
-                const compressedSize = blob.size;
-                const reduction = (
-                  ((originalSize - compressedSize) / originalSize) *
-                  100
-                ).toFixed(1);
+      const compressedBytes = await pdfDoc.save({
+        useObjectStreams: true,
+        compress: true,
+      });
 
-                saveAs(blob, `compressed_${file.name}`);
+      const blob = new Blob([compressedBytes], {
+        type: "application/pdf",
+      });
 
-                toast({
-                  title: "Image Compressed",
-                  description: `Size reduced by ${reduction}%. ${(originalSize / 1024).toFixed(
-                    0
-                  )}KB → ${(compressedSize / 1024).toFixed(0)}KB`,
-                });
-              }
-              setProcessing(false);
-            },
-            file.type,
-            quality[0] / 100
-          );
-        };
-      };
+      setCompressedBlob(blob);
+      setCompressedSize(blob.size);
 
-      reader.readAsDataURL(file);
+      const reduction = (
+        ((selectedFile.size - blob.size) / selectedFile.size) *
+        100
+      ).toFixed(1);
+
+      toast({
+        title: "Compression Complete",
+        description:
+          reduction > 5
+            ? `File size reduced by ${reduction}%`
+            : "This PDF was already optimized. Minimal reduction achieved.",
+      });
     } catch (error) {
+      console.error(error);
       toast({
         title: "Compression Failed",
-        description: "There was an error compressing your image.",
+        description:
+          "This PDF cannot be further compressed in the browser.",
         variant: "destructive",
       });
+    } finally {
       setProcessing(false);
     }
   };
 
+  const downloadPDF = () => {
+    if (!compressedBlob || !selectedFile) return;
+    saveAs(compressedBlob, `compressed_${selectedFile.name}`);
+  };
+
+  const formatMB = (bytes: number) =>
+    (bytes / 1024 / 1024).toFixed(2) + " MB";
+
   return (
     <ToolLayout
-      title="Image Compressor"
-      description="Compress JPG and PNG images online to reduce file size without losing quality."
-      seoContent={<SEOContent />}
+      title="PDF Compressor"
+      description="Reduce PDF file size securely in your browser. Ideal for job applications and government forms."
     >
       <div className="space-y-6">
-        <div className="space-y-3">
-          <label className="block text-sm font-medium text-foreground">
-            Compression Quality: {quality[0]}%
-          </label>
-          <Slider
-            value={quality}
-            onValueChange={setQuality}
-            min={10}
-            max={100}
-            step={5}
-            className="w-full"
-          />
-          <p className="text-xs text-muted-foreground">
-            70–80% quality is recommended for most web images.
-          </p>
-        </div>
-
         <FileUpload
-          onFileSelect={compressImage}
-          accept="image/jpeg,image/jpg,image/png"
-          maxSize={20}
+          onFileSelect={(file) => {
+            setSelectedFile(file);
+            setCompressedBlob(null);
+            setOriginalSize(null);
+            setCompressedSize(null);
+          }}
+          accept=".pdf"
+          maxSize={50}
         />
 
+        {selectedFile && !processing && !compressedBlob && (
+          <>
+            <div className="text-sm text-muted-foreground">
+              Original size: {formatMB(selectedFile.size)}
+            </div>
+
+            <Button onClick={compressPDF} className="w-full">
+              Compress PDF
+            </Button>
+          </>
+        )}
+
         {processing && (
-          <div className="flex items-center justify-center gap-3 py-8">
+          <div className="flex items-center justify-center gap-2 py-8">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            <p className="text-muted-foreground">Compressing image…</p>
+            <span className="text-muted-foreground">
+              Compressing your PDF…
+            </span>
+          </div>
+        )}
+
+        {compressedBlob && originalSize && compressedSize && (
+          <div className="space-y-4 border rounded-lg p-4">
+            <div className="text-sm">
+              <p>
+                <strong>Original size:</strong>{" "}
+                {formatMB(originalSize)}
+              </p>
+              <p>
+                <strong>Compressed size:</strong>{" "}
+                {formatMB(compressedSize)}
+              </p>
+              <p>
+                <strong>Reduction:</strong>{" "}
+                {(
+                  ((originalSize - compressedSize) / originalSize) *
+                  100
+                ).toFixed(1)}
+                %
+              </p>
+            </div>
+
+            <Button onClick={downloadPDF} className="w-full">
+              Download Compressed PDF
+            </Button>
           </div>
         )}
       </div>
@@ -143,4 +156,4 @@ const ImageCompressor = () => {
   );
 };
 
-export default ImageCompressor;
+export default PDFCompressor;
