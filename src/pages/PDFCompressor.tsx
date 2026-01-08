@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { saveAs } from "file-saver";
-import * as pdfjsLib from "pdfjs-dist";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
 import { jsPDF } from "jspdf";
 import ToolLayout from "@/components/ToolLayout";
 import FileUpload from "@/components/FileUpload";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useSEO } from "@/components/useSEO";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.mjs",
+  "pdfjs-dist/legacy/build/pdf.worker.js",
   import.meta.url
 ).toString();
 
@@ -24,87 +24,75 @@ const PDFCompressor = () => {
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
-  const [quality, setQuality] = useState([80]); // 🔑 tuned for 20–25%
+  const [quality, setQuality] = useState([80]);
   const { toast } = useToast();
 
   const compressPDF = async () => {
     if (!selectedFile) return;
-
     setProcessing(true);
+
     try {
       const arrayBuffer = await selectedFile.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+      const pdf = await pdfjsLib.getDocument({
+        data: arrayBuffer,
+        disableFontFace: true,
+        useSystemFonts: true,
+      }).promise;
 
       const numPages = pdf.numPages;
-
       const firstPage = await pdf.getPage(1);
-      const viewport = firstPage.getViewport({ scale: 1 });
-      const isLandscape = viewport.width > viewport.height;
+      const baseViewport = firstPage.getViewport({ scale: 1 });
 
       const doc = new jsPDF({
-        orientation: isLandscape ? "landscape" : "portrait",
+        orientation:
+          baseViewport.width > baseViewport.height ? "landscape" : "portrait",
         unit: "pt",
-        format: [viewport.width, viewport.height],
+        format: [baseViewport.width, baseViewport.height],
       });
 
       for (let i = 1; i <= numPages; i++) {
         const page = await pdf.getPage(i);
-
-        // 🔑 MODERATE render scale (NOT aggressive)
-        const pageViewport = page.getViewport({ scale: 1.25 });
+        const viewport = page.getViewport({ scale: 1.25 });
 
         const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d")!;
-        canvas.width = pageViewport.width;
-        canvas.height = pageViewport.height;
+        const ctx = canvas.getContext("2d")!;
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
 
-        await page.render({
-          canvasContext: context,
-          viewport: pageViewport,
-        } as any).promise;
+        await page.render({ canvasContext: ctx, viewport }).promise;
 
-        const imgData = canvas.toDataURL(
-          "image/jpeg",
-          quality[0] / 100
-        );
+        const img = canvas.toDataURL("image/jpeg", quality[0] / 100);
 
-        if (i > 1) {
-          doc.addPage([viewport.width, viewport.height]);
-        }
-
+        if (i > 1) doc.addPage();
         doc.addImage(
-          imgData,
+          img,
           "JPEG",
           0,
           0,
-          viewport.width,
-          viewport.height
+          baseViewport.width,
+          baseViewport.height
         );
       }
 
-      const compressedBlob = doc.output("blob");
-      const originalSize = selectedFile.size;
+      const blob = doc.output("blob");
       const reduction = (
-        ((originalSize - compressedBlob.size) / originalSize) *
+        ((selectedFile.size - blob.size) / selectedFile.size) *
         100
       ).toFixed(1);
 
-      saveAs(compressedBlob, `compressed_${selectedFile.name}`);
+      saveAs(blob, `compressed_${selectedFile.name}`);
 
       toast({
         title: "PDF Compressed",
-        description: `Size reduced by ${reduction}%. Original: ${(originalSize / 1024 / 1024).toFixed(
-          2
-        )}MB → Compressed: ${(compressedBlob.size / 1024 / 1024).toFixed(
-          2
-        )}MB`,
+        description: `Size reduced by ${reduction}%.`,
       });
-    } catch (error) {
-      console.error(error);
+    } catch (e) {
+      console.error(e);
       toast({
-        title: "Compression Failed",
+        title: "PDF Not Supported",
         description:
-          "This PDF could not be processed fully in the browser.",
+          "This PDF uses features that cannot be processed in the browser.",
         variant: "destructive",
       });
     } finally {
@@ -118,25 +106,12 @@ const PDFCompressor = () => {
       description="Reduce PDF file size by about 20–25% using browser-based compression."
     >
       <div className="space-y-6">
-        <FileUpload
-          onFileSelect={setSelectedFile}
-          accept=".pdf"
-          maxSize={50}
-        />
+        <FileUpload onFileSelect={setSelectedFile} accept=".pdf" maxSize={50} />
 
         {selectedFile && !processing && (
-          <div className="space-y-4">
-            <div className="bg-muted/50 rounded-lg p-4">
-              <p className="text-sm text-muted-foreground mb-1">
-                Selected: {selectedFile.name}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Size: {(selectedFile.size / 1024 / 1024).toFixed(2)}MB
-              </p>
-            </div>
-
+          <>
             <div className="space-y-3">
-              <label className="text-sm font-medium text-foreground">
+              <label className="text-sm font-medium">
                 Compression level
               </label>
               <Slider
@@ -146,28 +121,23 @@ const PDFCompressor = () => {
                 max={90}
                 step={5}
               />
-              <p className="text-xs text-muted-foreground">
-                Balanced compression (recommended)
-              </p>
             </div>
 
             <Button onClick={compressPDF} className="w-full">
               Compress PDF
             </Button>
-          </div>
+          </>
         )}
 
         {processing && (
           <div className="flex items-center justify-center gap-3 py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            <p className="text-muted-foreground">
-              Compressing your PDF...
-            </p>
+            <Loader2 className="w-6 h-6 animate-spin" />
+            Compressing PDF…
           </div>
         )}
 
         <p className="text-xs text-muted-foreground text-center">
-          Note: Compression slightly reduces quality and may remove selectable text.
+          Note: Compression reduces quality and may remove selectable text.
         </p>
       </div>
     </ToolLayout>
